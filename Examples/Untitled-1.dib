@@ -1,0 +1,30 @@
+#!csharp
+
+#r "../Numeral/bin/Debug/net5.0/Numeral.dll"
+#r "nuget:XPlot.Plotly"
+
+using Numeral;
+using Microsoft.DotNet.Interactive.Formatting;
+using XPlot.Plotly;
+
+#!csharp
+
+Formatter.Register(
+    type: typeof(NDArray<>),
+    formatter: (arr, writer) => writer.Write(arr.Display()), 
+    "text/plain");
+
+#!csharp
+
+var x = NDArray.Linspace<double>(-Math.PI, Math.PI, 10);
+var y = x.Sin();
+
+#!csharp
+
+var scatter = new Scatter() { x = x, y = y };
+var chart = Chart.Plot(scatter);
+display(chart.GetHtml(), "text/html")
+
+#!csharp
+
+display(x.Sum(1).Display());
