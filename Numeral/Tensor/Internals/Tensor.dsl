@@ -1,0 +1,181 @@
+﻿<#@ template language="C#" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#+
+
+class DType
+{
+    public string ClassName { get; set; }
+    public string Name { get; set; }
+    public string Zero { get; set; }
+    public string One { get; set; }
+
+    public static DType Float = new DType { ClassName = "float", Name = "Float", Zero = "0.0f", One = "1.0f" };
+    public static DType Double = new DType { ClassName = "double", Name = "Double" };
+    public static DType Int = new DType { ClassName = "int", Name = "Int" };
+    public static DType Byte = new DType { ClassName = "byte", Name = "Byte" };
+    public static DType Char = new DType { ClassName = "char", Name = "Char", Zero = "(char)0", One = "(char)1" };
+}
+
+class Method
+{
+    public Method(string name)
+    {
+        Name = name;
+        VecName = name;
+        CanVectorize = true;
+    }
+
+    public string Name { get; set; }
+    public string Op { get; set; }
+    public string OpFunc { get; set; }
+    public string VecName { get; set; }
+    public bool CanVectorize { get; set; }
+    public bool HasOp => Op != null;
+    public bool HasFunc => OpFunc != null;
+
+    public DType[] IncludeTypes { get; set; }
+    public DType[] ExcludeTypes { get; set; }
+
+    public bool SupportsType(DType type)
+    {
+        bool include = true;
+        if (IncludeTypes != null)
+            include = IncludeTypes.Contains(type);
+        if (ExcludeTypes != null)
+            include &= !ExcludeTypes.Contains(type);
+        return include;
+    }
+}
+
+class BinaryMethod : Method
+{
+    public BinaryMethod(string name) : base(name) { }
+
+    public bool IsComp { get; set; }
+    public string TrueVal { get; set; } = "-1";
+
+    public string GetOpCode(string x, string y)
+    {
+        if (HasOp)
+            return $"{x} {Op} {y}";
+        return $"{OpFunc}({x}, {y})";
+    }
+}
+
+class UnaryMethod : Method
+{
+    public UnaryMethod(string name) : base(name) { }
+
+    public string GetOpCode(string x)
+    {
+        if (HasOp)
+            return $"{Op}{x}";
+        return $"{OpFunc}({x})";
+    }
+}
+
+class ReducerMethod : Method
+{
+    public ReducerMethod(string name) : base(name) 
+    { 
+        CanVectorize = false;
+    }
+
+    public string GetOpCode(string x, string tmp)
+    {
+        if (HasOp)
+            return $"{x} {Op} {tmp}";
+        return $"{OpFunc}({x}, {tmp})";
+    }
+}
+
+class AccumulatorMethod : Method
+{
+    public AccumulatorMethod(string name) : base(name) 
+    { 
+        CanVectorize = false;
+    }
+
+    public string GetOpCode(string x, string tmp)
+    {
+        if (HasOp)
+            return $"{x} {Op} {tmp}";
+        return $"{OpFunc}({x}, {tmp})";
+    }
+}
+
+static class DSL
+{
+    public static DType[] DTypes = new[]
+    {
+        DType.Float,
+        DType.Double,
+        DType.Int,
+        DType.Byte
+    };
+
+    public static DType[] FloatTypes = new[]
+    {
+        DType.Float,
+        DType.Double,
+    };
+
+    public static BinaryMethod[] BinaryMethods = new[] 
+    {
+        new BinaryMethod("Add") { Op = "+" },
+        new BinaryMethod("Subtract") { Op = "-" },
+        new BinaryMethod("Multiply") { Op = "*" },
+        new BinaryMethod("Divide") { Op = "/" },
+        new BinaryMethod("BitAnd") { Op = "&", VecName = "BitwiseAnd", ExcludeTypes = FloatTypes },
+        new BinaryMethod("BitOr") { Op = "|", VecName = "BitwiseOr", ExcludeTypes = FloatTypes },
+        new BinaryMethod("Xor") { Op = "^", VecName = "Xor", ExcludeTypes = FloatTypes },
+        new BinaryMethod("Pow") { OpFunc = "Math.Pow", CanVectorize = false },
+        new BinaryMethod("Log") { OpFunc = "Math.Log", CanVectorize = false },
+        new BinaryMethod("Maximum") { OpFunc = "Math.Max", VecName = "Max" },
+        new BinaryMethod("Minimum") { OpFunc = "Math.Min", VecName = "Min" },
+        new BinaryMethod("Atan2") { OpFunc = "Math.Atan2", CanVectorize = false },
+        new BinaryMethod("LessThan") { Op = "<", IsComp = true },
+        new BinaryMethod("LessThanOrEqual") { Op = "<=", IsComp = true },
+        new BinaryMethod("GreaterThan") { Op = ">", IsComp = true },
+        new BinaryMethod("GreaterThanOrEqual") { Op = ">=", IsComp = true },
+        new BinaryMethod("ArrayEqual") { Op = "==", VecName = "Equals", IsComp = true },
+        new BinaryMethod("ArrayNotEqual") { Op = "!=", VecName = "Equals", IsComp = true, TrueVal = "1" },
+    };
+
+    public static UnaryMethod[] UnaryMethods = new[]
+    {
+        new UnaryMethod("Negate") { Op = "-" },
+        new UnaryMethod("Abs") { OpFunc = "Math.Abs" },
+        new UnaryMethod("BitNot") { Op = "~", VecName = "OnesComplement", ExcludeTypes = FloatTypes },
+        new UnaryMethod("Floor") { OpFunc = "Math.Floor", IncludeTypes = FloatTypes },
+        new UnaryMethod("Ceiling") { OpFunc = "Math.Ceiling", IncludeTypes = FloatTypes },
+        new UnaryMethod("Sqrt") { OpFunc = "Math.Sqrt", VecName = "SquareRoot", IncludeTypes = FloatTypes },
+        new UnaryMethod("Exp") { OpFunc = "Math.Exp", CanVectorize = false, IncludeTypes = FloatTypes },
+        new UnaryMethod("Ln") { OpFunc = "Math.Log", CanVectorize = false, IncludeTypes = FloatTypes },
+        new UnaryMethod("Log10") { OpFunc = "Math.Log10", CanVectorize = false, IncludeTypes = FloatTypes },
+        new UnaryMethod("Sin") { OpFunc = "Math.Sin", CanVectorize = false, IncludeTypes = FloatTypes },
+        new UnaryMethod("Cos") { OpFunc = "Math.Cos", CanVectorize = false, IncludeTypes = FloatTypes },
+        new UnaryMethod("Tan") { OpFunc = "Math.Tan", CanVectorize = false, IncludeTypes = FloatTypes },
+        new UnaryMethod("Asin") { OpFunc = "Math.Asin", CanVectorize = false, IncludeTypes = FloatTypes },
+        new UnaryMethod("Acos") { OpFunc = "Math.Acos", CanVectorize = false, IncludeTypes = FloatTypes },
+        new UnaryMethod("Atan") { OpFunc = "Math.Atan", CanVectorize = false, IncludeTypes = FloatTypes },
+    };
+
+    public static ReducerMethod[] ReducerMethods = new[]
+    {
+        new ReducerMethod("Min") { OpFunc = "Math.Min" },
+        new ReducerMethod("Max") { OpFunc = "Math.Max" },
+        new ReducerMethod("Sum") { Op = "+" },
+    };
+
+    public static AccumulatorMethod[] AccumulatorMethods = new[]
+    {
+        new AccumulatorMethod("Cumsum") { Op = "+" },
+        new AccumulatorMethod("Cumprod") { Op = "*" },
+    };
+
+
+}
+
+#>

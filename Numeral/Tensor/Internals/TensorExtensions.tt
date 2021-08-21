@@ -1,0 +1,67 @@
+﻿<#@ template language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ include file="Tensor.dsl" #>
+
+using System;
+using System.Buffers;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
+using Numeral.Internals;
+
+namespace Numeral
+{
+    public static partial class Tensor
+    {
+<#
+foreach (var method in DSL.BinaryMethods)
+{
+    var r = method.IsComp ? "bool" : "T";
+#>
+        public static Tensor<<#= r #>> <#= method.Name #><T>(this Tensor<T> x, Tensor<T> y) => x.Core.Basic.<#= method.Name #>.Call(x, y);
+        public static Tensor<<#= r #>> <#= method.Name #><T>(this Tensor<T> x, Tensor<T> y, Tensor<<#= r #>> result) => x.Core.Basic.<#= method.Name #>.Call(x, y, result);
+        public static Tensor<<#= r #>> <#= method.Name #><T>(this Tensor<T> x, T y) => x.Core.Basic.<#= method.Name #>.Call(x, (ScalarTensor<T>)y);
+        public static Tensor<<#= r #>> <#= method.Name #><T>(this Tensor<T> x, T y, Tensor<<#= r #>> result) => x.Core.Basic.<#= method.Name #>.Call(x, (ScalarTensor<T>)y, result);
+        public static Tensor<<#= r #>> <#= method.Name #><T>(T x, Tensor<T> y, Tensor<<#= r #>> result) => y.Core.Basic.<#= method.Name #>.Call((ScalarTensor<T>)x, y, result);
+<# if (!method.IsComp) { #>
+        public static Tensor<<#= r #>> <#= method.Name #>InPlace<T>(this Tensor<T> x, Tensor<T> y) => x.Core.Basic.<#= method.Name #>.Call(x, y, x);
+        public static Tensor<<#= r #>> <#= method.Name #>InPlace<T>(this Tensor<T> x, T y) => x.Core.Basic.<#= method.Name #>.Call(x, (ScalarTensor<T>)y, x);
+        public static Tensor<<#= r #>> <#= method.Name #><T>(T x, Tensor<T> y) => y.Core.Basic.<#= method.Name #>.Call((ScalarTensor<T>)x, y, y);
+<# } #>
+<#
+} // end binary methods
+#>
+<#
+foreach (var method in DSL.UnaryMethods)
+{
+#>
+        public static Tensor<T> <#= method.Name #><T>(this Tensor<T> x) => x.Core.Basic.<#= method.Name #>.Call(x);
+        public static Tensor<T> <#= method.Name #><T>(this Tensor<T> x, Tensor<T> result) => x.Core.Basic.<#= method.Name #>.Call(x, result);
+        public static Tensor<T> <#= method.Name #>InPlace<T>(this Tensor<T> x) => x.Core.Basic.<#= method.Name #>.Call(x, x);
+<#
+} // end unary methods
+#>
+<#
+foreach (var method in DSL.ReducerMethods)
+{
+#>
+        public static T <#= method.Name #><T>(this Tensor<T> x) => x.Core.Basic.<#= method.Name #>.Call(x);
+        public static Tensor<T> <#= method.Name #><T>(this Tensor<T> x, int axis) => x.Core.Basic.<#= method.Name #>.Call(x, axis);
+        public static Tensor<T> <#= method.Name #><T>(this Tensor<T> x, int axis, Tensor<T> result) => x.Core.Basic.<#= method.Name #>.Call(x, result, axis);
+<#
+} // end reducer methods
+#>
+<#
+foreach (var method in DSL.AccumulatorMethods)
+{
+#>
+        public static Tensor<T> <#= method.Name #><T>(this Tensor<T> x, int axis) => x.Core.Basic.<#= method.Name #>.Call(x, axis);
+        public static Tensor<T> <#= method.Name #><T>(this Tensor<T> x, int axis, Tensor<T> result) => x.Core.Basic.<#= method.Name #>.Call(x, result, axis);
+<#
+} // end unary methods
+#>
+    }
+}
