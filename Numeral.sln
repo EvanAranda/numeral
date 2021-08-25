@@ -11,8 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Numeral.Benchmarks", "Numer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Numeral.LinearAlgebra", "Numeral.LinearAlgebra\Numeral.LinearAlgebra.csproj", "{30C8A501-7049-4EE4-A743-A2E3CD5C5593}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Numeral.CodeGeneration", "Numeral.CodeGeneration\Numeral.CodeGeneration.csproj", "{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FC9CFA08-A91B-4020-9D5F-1A0B5B823DC1}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
@@ -79,18 +77,6 @@ Global
 		{30C8A501-7049-4EE4-A743-A2E3CD5C5593}.Release|x64.Build.0 = Release|Any CPU
 		{30C8A501-7049-4EE4-A743-A2E3CD5C5593}.Release|x86.ActiveCfg = Release|Any CPU
 		{30C8A501-7049-4EE4-A743-A2E3CD5C5593}.Release|x86.Build.0 = Release|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Debug|x64.Build.0 = Debug|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Debug|x86.Build.0 = Debug|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Release|x64.ActiveCfg = Release|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Release|x64.Build.0 = Release|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Release|x86.ActiveCfg = Release|Any CPU
-		{266196C3-CE6D-49CE-B82C-DBACA3EBFDEC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0

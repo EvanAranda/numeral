@@ -11,6 +11,8 @@ namespace Numeral
 
         public Range Range { get; }
 
+        public static readonly Slice All = Range.All;
+
         public static implicit operator Slice(in Range range)
         {
             return new Slice(range);

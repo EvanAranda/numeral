@@ -2,12 +2,14 @@ using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Numeral.Iterators;
 
-namespace Numeral.Iterators
+namespace Numeral.Internals
 {
     public static partial class IteratorExtensions
     {
         public static unsafe NDIterator<T> CreateIterator<T>(
+            this DenseTensor<T> tensor,
             in ReadOnlySpan<int> fullShape,
             in ReadOnlySpan<int> arrayShape,
             in ReadOnlySpan<int> arrayStrides,
@@ -15,7 +17,7 @@ namespace Numeral.Iterators
             int operandRank)
         {
             var rank = fullShape.Length;
-            var iter = new NDIterator<T>(rank);
+            var iter = new NDIterator<T>(rank, Unsafe.AsPointer(ref tensor._data.Span[0]));
 
             int axis, arrSize, arrStride, fullSize;
 
@@ -65,19 +67,20 @@ namespace Numeral.Iterators
             IteratorHelpers.GetBackstrides(
                 fullShape, iter.Strides, iter.Backstrides);
 
-            iter.Initialize(operandRank);
+            iter.Initialize(tensor._flags.IsContiguous(), operandRank);
 
             return iter;
         }
 
         public static unsafe NDIterator<T> CreateIterator<T>(
+            this DenseTensor<T> tensor,
             in ReadOnlySpan<int> fullShape,
             in ReadOnlySpan<int> arrayShape,
             in ReadOnlySpan<int> arrayStrides,
             int operandRank)
         {
             var rank = fullShape.Length;
-            var iter = new NDIterator<T>(rank);
+            var iter = new NDIterator<T>(rank, Unsafe.AsPointer(ref tensor._data.Span[0]));
 
             // populate iter params
             for (var i = 0; i < rank; i++)
@@ -109,110 +112,55 @@ namespace Numeral.Iterators
             IteratorHelpers.GetBackstrides(
                 fullShape, iter.Strides, iter.Backstrides);
 
-            iter.Initialize(operandRank);
+            iter.Initialize(tensor._flags.IsContiguous(), operandRank);
 
             return iter;
         }
 
-        public static NDIterator<T> GetIterator<T>(
-            this in NDArray<T> array,
+        // public static NDIterator<T> GetIterator<T>(
+        //     this DenseTensor<T> array,
+        //     in ReadOnlySpan<int> fullShape,
+        //     in ReadOnlySpan<int> order,
+        //     int operandRank)
+        // {
+        //     var iter = CreateIterator<T>(fullShape, array.Shape, array.Strides, order, operandRank);
+        //     iter.Bind(array);
+        //     return iter;
+        // }
+
+        // public static NDIterator<T> GetIterator<T>(
+        //     this DenseTensor<T> array,
+        //     in ReadOnlySpan<int> fullShape,
+        //     int operandRank)
+        // {
+        //     var iter = CreateIterator<T>(fullShape, array.Shape, array.Strides, operandRank);
+        //     iter.Bind(array);
+        //     return iter;
+        // }
+
+        public static unsafe NDIterator<T> CreateIterator<T>(
+            this Scalar<T> scalar,
             in ReadOnlySpan<int> fullShape,
-            in ReadOnlySpan<int> order,
             int operandRank)
         {
-            var iter = CreateIterator<T>(
-                fullShape, array.Shape, array.Strides, order, operandRank);
-            iter.Bind(array);
+            var iter = new NDIterator<T>(fullShape.Length, Unsafe.AsPointer(ref scalar._value));
+
+            for (var i = 0; i < fullShape.Length; i++)
+                iter.FullShape[i] = fullShape[i];
+
+            iter.Initialize(true, operandRank);
+
             return iter;
         }
 
-        public static NDIterator<T> GetIterator<T>(
-            this in NDArray<T> array,
-            in ReadOnlySpan<int> fullShape,
-            int operandRank)
-        {
-            var iter = CreateIterator<T>(
-                fullShape, array.Shape, array.Strides, operandRank);
-            iter.Bind(array);
-            return iter;
-        }
-
-        public static unsafe void Bind<T>(this ref NDIterator<T> iterator, in NDArray<T> array)
-        {
-            fixed (int* s = iterator.Strides, i = iterator.Indices)
-            {
-                var index = IndexHelpers.GetIndex(s, i, iterator.Rank);
-                iterator.DataPointer = Unsafe.AsPointer(ref array._buffer.Span[index]);
-            }
-        }
-
-        public static unsafe Span<T> GetData<T>(this ref NDIterator<T> iter)
-        {
-            if (iter.DataPointer == iter.PrevDataPointer)
-                return new Span<T>(iter.OperandBuffer, iter.OperandSize);
-
-            iter.PrevDataPointer = iter.DataPointer;
-
-            var buf = iter.InnerLoopType switch
-            {
-                StrideType.Contiguous => new Span<T>(iter.DataPointer, iter.OperandSize),
-                StrideType.Filled => iter.GetFilledData(),
-                StrideType.Buffered => iter.GetBufferedData(),
-                _ => throw new NotSupportedException(),
-            };
-
-            iter.OperandBuffer = Unsafe.AsPointer(ref buf[0]);
-            return buf;
-        }
-
-        private static unsafe Span<T> GetFilledData<T>(this ref NDIterator<T> iter)
-        {
-            var span = iter.BorrowedMemory.Memory.Span.Slice(0, iter.OperandSize);
-            span.Fill(Unsafe.Read<T>(iter.DataPointer));
-            return span;
-        }
-
-        private static unsafe Span<T> GetBufferedData<T>(this ref NDIterator<T> iter)
-        {
-            var length = iter.OperandSize;
-            var span = iter.BorrowedMemory.Memory.Span.Slice(0, length);
-
-            span[0] = Unsafe.Read<T>(iter.DataPointer);
-            for (var i = 1; i < length; i++)
-            {
-                iter.IncrementPointer();
-                span[i] = Unsafe.Read<T>(iter.DataPointer);
-            }
-
-            return span;
-        }
-
-        public static unsafe bool IncrementPointer<T>(this ref NDIterator<T> iter)
-        {
-            // if (iter.Rank == 0)
-            //     return false;
-
-            for (var i = iter.Rank - 1; i >= 0; i--)
-            {
-                if (iter.Indices[i] == iter.FullShape[i] - 1)
-                {
-                    if (i == 0)
-                        return false;
-
-                    iter.DataPointer = Unsafe.Subtract<T>(iter.DataPointer, iter.Backstrides[i]);
-                    iter.Indices[i] = iter.Offsets[i];
-
-                    continue;
-                }
-
-                iter.DataPointer = Unsafe.Add<T>(iter.DataPointer, iter.Strides[i]);
-                iter.Indices[i]++;
-
-                break;
-            }
-
-            return true;
-        }
+        // public static unsafe void Bind<T>(this ref NDIterator<T> iterator, DenseTensor<T> tensor)
+        // {
+        //     fixed (int* s = iterator.Strides, i = iterator.Indices)
+        //     {
+        //         var index = IndexHelpers.GetIndex(s, i, iterator.Rank);
+        //         iterator.DataPointer = Unsafe.AsPointer(ref tensor._data.Span[index]);
+        //     }
+        // }
 
         public static void Truncate<T>(this ref NDIterator<T> iter, int nDims)
         {
@@ -222,24 +170,24 @@ namespace Numeral.Iterators
             iter.Rank = iter.FullRank - nDims;
         }
 
-        public static unsafe void Initialize<T>(this ref NDIterator<T> iter, int operandRank)
+        public static unsafe void Initialize<T>(this ref NDIterator<T> iter, bool isMemoryContiguous, int operandRank)
         {
             iter.OperandSize = iter.GetOperandSize(operandRank);
 
             if (operandRank == 1 && iter.Strides[iter.FullRank - 1] == 0)
             {
-                iter.InnerLoopType = StrideType.Filled;
+                iter.Flags = IteratorFlags.Filled;
                 iter.Truncate(operandRank);
             }
-            else if (iter.IsOperandContiguous(operandRank))
+            else if (isMemoryContiguous && iter.IsOperandContiguous(operandRank))
             {
-                iter.InnerLoopType = StrideType.Contiguous;
+                iter.Flags = IteratorFlags.Contiguous;
                 iter.Truncate(operandRank);
                 return;
             }
             else
             {
-                iter.InnerLoopType = StrideType.Buffered;
+                iter.Flags = IteratorFlags.Buffered;
             }
 
             iter.BorrowedMemory = MemoryPool<T>.Shared.Rent(iter.OperandSize);
@@ -266,7 +214,7 @@ namespace Numeral.Iterators
 
             var iterRank = iterator.FullRank;
             int s, sprev = -1;
-            int i = 0;
+            var i = 0;
 
             // check that the n=operandRank inner-most, non-broadcasted, loops
             // are contiguous if their strides are strictly increasing

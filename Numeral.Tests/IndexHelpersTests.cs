@@ -10,9 +10,10 @@ namespace Numeral.Tests
         [TestMethod]
         public void GetIndices()
         {
-            var shape = new int[] { 3, 2 };
-            var strides = IteratorHelpers.GetStrides(shape);
-            var cases = new[]
+            Span<int> shape = stackalloc int[] { 3, 2 };
+            Span<int> strides = stackalloc int[2];
+            IteratorHelpers.GetStrides(shape, strides);
+            var cases = new (int, int[])[]
             {
                 (0, new[] {0,0}),
                 (1, new[] {0,1}),

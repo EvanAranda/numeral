@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using Numeral.Internals;
 
 namespace Numeral.Iterators
 {

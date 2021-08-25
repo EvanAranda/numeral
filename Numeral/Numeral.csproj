@@ -1,9 +1,45 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Numeral.CodeGeneration\Numeral.CodeGeneration.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <None Remove="Tensor\" />
+    <None Remove="Internals\" />
   </ItemGroup>
-
+  <ItemGroup>
+    <Folder Include="Tensor\" />
+    <Folder Include="Internals\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Tensor\Internals\T4Template.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TensorOps.cs</LastGenOutput>
+    </None>
+    <None Update="Tensor\Internals\CpuArithmetic %28copy%29.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TensorOpOverloads.cs</LastGenOutput>
+    </None>
+    <None Update="Tensor\Internals\TensorOpOverloads %28copy%29.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>TensorExtensions.cs</LastGenOutput>
+    </None>
+    <None Update="Internals\CpuArithmetic.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>CpuArithmetic.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Condition=" '$(EnableDefaultCompileItems)' == 'true' " Update="Internals\CpuArithmetic.cs">
+      <DependentUpon>..\Tensor\Internals\CpuArithmetic.tt</DependentUpon>
+    </Compile>
+    <Compile Condition=" '$(EnableDefaultCompileItems)' == 'true' " Update="Internals\TensorExtensions.cs">
+      <DependentUpon>..\Tensor\Internals\TensorExtensions.tt</DependentUpon>
+    </Compile>
+    <Compile Condition=" '$(EnableDefaultCompileItems)' == 'true' " Update="Internals\TensorOpOverloads.cs">
+      <DependentUpon>..\Tensor\Internals\TensorOpOverloads.tt</DependentUpon>
+    </Compile>
+    <Compile Condition=" '$(EnableDefaultCompileItems)' == 'true' " Update="Internals\TensorOps.cs">
+      <DependentUpon>..\Tensor\Internals\TensorOps.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <LangVersion>preview</LangVersion>

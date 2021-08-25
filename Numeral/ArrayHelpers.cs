@@ -6,6 +6,38 @@ namespace Numeral
 {
     public static class ArrayHelpers
     {
+        /// <summary>
+        /// Copies values from values to result except the value at index
+        /// </summary>
+        /// <param name="shape"></param>
+        /// <param name="reducedShape"></param>
+        /// <param name="axis"></param>
+        public static void GetReducedShape(this in ReadOnlySpan<int> shape, in Span<int> reducedShape, int axis)
+        {
+            for (int i = 0, j = 0; i < shape.Length; i++)
+            {
+                if (i == axis) continue;
+                reducedShape[j++] = shape[i];
+            }
+        }
+
+        /// <summary>
+        /// Copies values to result in order, but with the value at index placed 
+        /// at the end.
+        /// </summary>
+        /// <param name="values"></param>
+        /// <param name="order"></param>
+        /// <param name="index"></param>
+        public static void GetReducedOrder(this in Span<int> order, int axis)
+        {
+            order[^1] = axis;
+            for (int i = 0, j = 0; i < order.Length; i++)
+            {
+                if (i == axis) continue;
+                order[j++] = i;
+            }
+        }
+
         public static unsafe int GetProductSum(int* array, int length, int startAtDimension = 0)
         {
             if (length == 0)
@@ -34,7 +66,7 @@ namespace Numeral
             return true;
         }
 
-        public static void GetPermuted<T>(in ReadOnlySpan<T> input, in Span<T> array, in ReadOnlySpan<int> order)
+        public static void GetPermuted<T>(this in ReadOnlySpan<T> input, in Span<T> array, in ReadOnlySpan<int> order)
         {
             if (array.Length != order.Length)
                 throw new Exception();
